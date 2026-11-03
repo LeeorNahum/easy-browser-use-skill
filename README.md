@@ -4,4 +4,5 @@ Agent Skill that tells an agent in any harness how to drive the user's real, sig
 
 - `SKILL.md`: what the server reaches, the order of calls, and the traps
 - `references/setup.md`: registering the server and the one Chrome setting
+- `scripts/answer-file-dialog.ps1` and `references/file-dialogs.md`: answering the browser's Save As and Open dialogs on Windows
 - `AGENTS.md`: rules for editing this skill

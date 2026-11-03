@@ -1,10 +1,10 @@
 ---
 name: "easy-browser-use"
-description: "Use when a task needs the user's own signed-in Chrome, from any harness: reading or acting on a tab they already have open, or working in a site as them. Also use when setting up the chrome-devtools MCP server on a machine, or when it hangs, seems to be missing, or does not list the user's tabs. Drives the user's real Chrome through the chrome-devtools MCP server, and gives the setup, the order of calls, and the traps."
-compatibility: "Needs the chrome-devtools MCP server registered in the harness, a current Node.js LTS with npx, and Chrome 144 or later."
+description: "Use when a task needs the user's own signed-in Chrome, from any harness: reading or acting on a tab they already have open, or working in a site as them. Also use when setting up the chrome-devtools MCP server on a machine or when it hangs, seems to be missing, or does not list the user's tabs, and on Windows before a browser click that downloads a file or opens a file picker, or when a browser's Save As or Open dialog is waiting, even behind other windows. Drives the user's real Chrome through the chrome-devtools MCP server, answers the browser's Save As and Open dialogs on Windows with a script, and gives the setup, the order of calls, and the traps."
+compatibility: "Needs the chrome-devtools MCP server registered in the harness, a current Node.js LTS with npx, and Chrome 144 or later. The file dialog script needs Windows with PowerShell 7 or Windows PowerShell 5.1, and network access when it is fetched rather than run from the skill's folder."
 metadata:
   author: "Leeor Nahum"
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Easy Browser Use
@@ -16,7 +16,7 @@ To register the server on a machine, or when it attaches to the wrong Chrome, re
 ## Before The First Call
 
 - `chrome-devtools` reaches anything inside a web page, a dialog the page raises included. Reading and acting on a tab does not bring it forward or touch the mouse and keyboard, so the user keeps working while it runs.
-- Chrome's own windows, file pickers, and save and print dialogs are outside the page and out of its reach. They take desktop control.
+- Chrome's own windows, file pickers, and save and print dialogs are outside the page and out of its reach. On Windows, a Save As or Open dialog is answered by this skill's file dialog script, and any other one takes desktop control.
 - A harness may hold the server's tools back until they are searched for. Search its tool registry for the server name before deciding they are missing. A session that started before the server was registered does not have them at all, and needs a new session unless the harness can reload its servers.
 
 ## Tabs And Pages
@@ -29,5 +29,6 @@ To register the server on a machine, or when it attaches to the wrong Chrome, re
 - Some entries carry a URL and no title, such as a PDF or a tab Chrome has not loaded. Match those on the URL.
 - For work that needs a new tab, open it in the background and close it when done.
 - A sign-in page whose fields the browser has already filled is passed by pressing its own sign-in button. Stop for the user only at a step that needs something they hold, such as a second-factor approval, and say which tab is waiting.
-- To attach a file, give its path to the server's upload tool on the page's file input. A click that opens a file picker or a save dialog can hold the call until the dialog is answered, which takes desktop control.
+- To attach files, call the server's upload tool with every file's path instead of clicking the page's upload control. No picker opens. A page that opens its picker through `showOpenFilePicker` is outside that tool.
+- A click of your own that starts a download or opens a file picker can hold the call until the dialog is answered. On Windows, answer a Save As or Open dialog with the [file dialog script](scripts/answer-file-dialog.ps1), started before the click. Read [File dialogs](references/file-dialogs.md) before such a click, and before answering a dialog that is already waiting. Any other dialog outside the page takes desktop control.
 - To check that an action landed, take a text snapshot of the same page and find the changed state in it, or wait for the text the action should produce. `document.visibilityState` reads `visible` on a background tab, so it cannot say which tab is in front. In an ordinary Chrome window the window's title on the desktop can, since it is the visible tab's title followed by " - Google Chrome", which takes a desktop tool to read.
