@@ -28,6 +28,7 @@ To register the server on a machine, or when it attaches to the wrong Chrome, re
 
 - With several Chrome profiles open, the server attaches to the one Chrome treats as default. A tab or sign-in that is missing may be in another profile.
 - To act on a tab the user has open, list the pages, match on title and URL, say which tab was chosen, and pass its id. It does not have to be selected or in front. Bring it to the front only when the user should end up looking at it.
+- The list's order is the server's, not the tab bar's, so a position such as "first" or "the tab on the right" cannot be read from it. Match on title and URL, or ask which tab.
 - The `[selected]` marker in the list is the server's own bookkeeping, not the tab the user is looking at, and no tool falls back to it.
 - Page ids are numbered per session, and the user opens and closes tabs while the session runs. List again before reusing an id from earlier.
 - Some entries carry a URL and no title, such as a PDF or a tab Chrome has not loaded. Match those on the URL.
