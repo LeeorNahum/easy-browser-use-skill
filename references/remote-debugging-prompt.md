@@ -12,7 +12,7 @@ Allow gives the program on the other end every tab, cookie, and signed-in accoun
 
 A server registered through the launcher in Setup needs none of what follows. The launcher starts the script in watch mode beside the server and starts the server once the script is watching, or without the script after fifteen seconds, with a warning on stderr. The script answers each new window for as long as the server runs, looking at the connections made in the ten seconds before it appeared, usually within a second. Every session's watcher sees every window, and one at a time works on them.
 
-It writes a line per window to `allow.log` in `%LOCALAPPDATA%\easy-browser-use`, and lines for its start, its end, and any error of its own. A window's line has a timestamp and the launcher's process number, then the result word from the table below with its reason.
+It writes a line per window to `allow.log` in `%LOCALAPPDATA%\easy-browser-use`, and lines for its start, its end, and any error of its own. A window's line has a timestamp and the process number of the launcher whose watcher answered it, which can be another session's, then the result word from the table below with its reason.
 
 When a call hangs under the launcher, read that log. No log, or no "watching" line in it, means the watcher never started, and the launcher's stderr says why. A window that was open before the watcher began is left alone. A refusal line means the window was left open, and the table's Next column, written for the plain script, applies to it. A window the log shows nothing for was raised before the watcher was watching or by another Chrome, so run the plain script with `-Existing`. The rest of this file is for a server registered the plain way.
 
