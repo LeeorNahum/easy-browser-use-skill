@@ -6,7 +6,7 @@ The [prompt script](../scripts/allow-remote-debugging.ps1) finds that window thr
 
 ## What Allow Grants
 
-Allow gives the program on the other end every tab, cookie, and signed-in account of the profile, until the connection ends. Chrome's window is where a person decides that, and it does not say which program asked. The script presses Allow when a chrome-devtools-mcp server, any agent's, holds a connection that could have raised the window, and leaves it open when a program of another kind does, or when no server does. So one agent's script can answer another agent's window, and several agents connecting at once are all answered.
+Allow gives the program on the other end every tab, cookie, and signed-in account of the profile, until the connection ends. Chrome's window is where a person decides that, and it does not say which program asked. The script presses Allow when a chrome-devtools-mcp server, any agent's, holds a connection that could have raised the window, and leaves it open when no server does. While a program of another kind holds any open connection to the port, however old, every window is left open, and the check runs again before each press. So one agent's script can answer another agent's window, and several agents connecting at once are all answered.
 
 ## With The Launcher
 
