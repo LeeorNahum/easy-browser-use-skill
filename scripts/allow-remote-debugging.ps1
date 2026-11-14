@@ -20,8 +20,9 @@ With -Watch it keeps running instead, for the launcher that starts the server. I
 it is watching and nothing after that. It answers each new window the same way, counting as the
 agent's own only a chrome-devtools-mcp process that descends from -ParentPid and looking at the
 connections made in the ten seconds before the window appeared. It writes one line per window to
--LogFile, starting with a timestamp and -ParentPid and then one of the words below, and it exits
-when that process does.
+-LogFile, starting with a timestamp and -ParentPid and then one of the words below. It also logs
+when it starts, when it ends, and any error of its own. It exits with 0 when that process does, and
+with 1 after an error that ends the watch.
 
 Without -Watch it prints WAITING once it is watching, and then one result line, and exits with one
 of these codes:
@@ -209,7 +210,7 @@ if ($Watch) {
   foreach ($existing in @(Find-Titled)) { $handled[$existing.Handle] = $true }
   $parent = [System.Diagnostics.Process]::GetProcessById($ParentPid)
   Write-Log "watching for windows titled '$Title' while process $ParentPid runs"
-  # The launcher starts the server only once this is printed, so no window can come before the snapshot above
+  # The launcher starts the server once this is printed, so no window comes before the snapshot above
   Write-Output 'READY'
   while (-not $parent.HasExited) {
     try {
@@ -232,7 +233,12 @@ if ($Watch) {
             # Chrome raises the window as the connection is made, so any connection that could have raised it is recent
             $why = Test-Attribution $browser $seenAt.AddSeconds(-10)
             if ($why) { Write-Log "NOT_OURS: $why. The window is left open." }
-            else { Write-Log (Invoke-Allow $now[0].Handle).Line }
+            else {
+              $result = Invoke-Allow $now[0].Handle
+              Write-Log $result.Line
+              # The window is gone, so its handle can be reused by the next one
+              if ($result.Code -eq 0) { $handled.Remove($now[0].Handle) }
+            }
           }
         }
       }

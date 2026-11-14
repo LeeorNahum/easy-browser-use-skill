@@ -4,7 +4,7 @@
 
 Install the launcher once and register it in place of the plain server command. It starts the same server, runs a copy kept on disk so the server starts without the network, and answers Chrome's "Allow remote debugging?" window for that server's connections, so no agent step is needed. The launcher passes any flags on to the server and uses `--autoConnect` when it is given none. It needs Node.js with npm and git.
 
-Run these in PowerShell. Where a plain registration already exists, remove it first, with `-s <scope>` when it is not at the default scope:
+Run these in PowerShell, using the lines for the harness in use. Where a plain registration already exists, remove it first, with `-s <scope>` when it is not at the default scope. A remove that finds nothing is harmless:
 
 ```powershell
 claude mcp remove chrome-devtools
@@ -18,7 +18,9 @@ claude mcp add --scope user chrome-devtools -- node "$dir\node_modules\easy-brow
 codex mcp add chrome-devtools -- node "$dir\node_modules\easy-browser-use\scripts\launch-server.mjs"
 ```
 
-`claude mcp list` shows the result. A session that is already running keeps the server it started, so the change takes effect in the next one. Any other harness takes the same stdio command. `npm update --prefix $dir` brings in newer releases within the version range that `package.json` allows, and the launcher writes one line per window to `allow.log` in that folder.
+`claude mcp list` shows the result. A session that is already running keeps the server it started, so the change takes effect in the next one, after Chrome has the setting below. Any other harness takes the same stdio command. Flags for the server go after the script path in the add command.
+
+`npm update --prefix $dir` reinstalls the launcher from the repository's default branch and the server within the range `package.json` allows. The launcher writes a line per window to `allow.log` in that folder.
 
 The launcher answers the window in English for the stable channel's Chrome. For another language or channel, register the plain server and run the prompt script with its parameters.
 
@@ -35,7 +37,7 @@ Any other harness takes the same stdio command. On Windows this registration wor
 
 ## Chrome
 
-In Chrome, remote debugging is allowed at `chrome://inspect/#remote-debugging`. The server cannot reach that page before it is attached, so the agent takes desktop control where the harness has it. That is the one setting. Chrome still raises its "Allow remote debugging?" window for each new connection, and no flag or policy skips it for the user's own profile.
+In Chrome, remote debugging is allowed at `chrome://inspect/#remote-debugging`. The server cannot reach that page before it is attached, so the agent takes desktop control where the harness has it. That is the one setting. Chrome still raises its "Allow remote debugging?" window for each new connection.
 
 `--autoConnect` is what makes the server attach to the running Chrome. Without it the server launches a separate Chrome with a profile of its own, where every page tool still works. When the user's tabs are missing from the list, check that flag first and then which profile the server attached to.
 

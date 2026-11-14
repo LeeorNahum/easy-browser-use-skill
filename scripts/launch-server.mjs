@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Starts the chrome-devtools MCP server with its stdio passed straight through. On Windows it first
-// starts the prompt script in watch mode, so Chrome's "Allow remote debugging?" window is answered
+// starts the prompt script in watch mode and waits for it to be watching, so Chrome's "Allow remote debugging?" window is answered
 // for this server's connections without the agent doing anything. The watcher never affects the
 // server: if it cannot start or stops, the server still runs and the launcher says so on stderr.
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,9 +39,11 @@ function startWatcher() {
     const finish = value => { clearTimeout(timer); done(value); };
     try {
       const logDir = join(appData, 'easy-browser-use');
+      const logFile = join(logDir, 'allow.log');
       mkdirSync(logDir, { recursive: true });
+      appendFileSync(logFile, '');
       watcher = spawn(shell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script,
-        '-Watch', '-ParentPid', String(process.pid), '-LogFile', join(logDir, 'allow.log')], { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+        '-Watch', '-ParentPid', String(process.pid), '-LogFile', logFile], { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
     } catch (error) {
       warn(`the Allow window will not be answered automatically: ${error.message}`);
       return done(undefined);
@@ -50,21 +52,29 @@ function startWatcher() {
     watcher.stdout.on('data', chunk => { if (!ready && String(chunk).includes('READY')) { ready = true; finish(watcher); } });
     watcher.on('error', error => { warn(`the Allow window will not be answered automatically: ${error.message}`); finish(undefined); });
     watcher.on('exit', code => { if (!ready) { warn('the Allow window will not be answered automatically, because the watcher stopped while starting'); finish(undefined); } else if (!stopping) warn(`the Allow window watcher stopped with code ${code}, see allow.log`); });
-    timer = setTimeout(() => { if (!ready) { warn('the Allow window watcher did not start in time, so the server starts without it'); finish(watcher); } }, 6000);
+    timer = setTimeout(() => {
+      if (ready) return;
+      warn('the Allow window watcher did not start in time, so the server starts without it');
+      watcher.kill();
+      finish(undefined);
+    }, 15000);
   });
 }
 
 let stopping = false;
 const watcher = process.platform === 'win32' ? await startWatcher() : undefined;
 
-// Node's own copy of npx, so server flags are never reinterpreted by a shell
+// Without an installed server, Node's own copy of npx fetches it, and no shell touches the server flags
 const npxCli = join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js');
 const entry = findServerEntry();
+if (!entry && !existsSync(npxCli)) {
+  warn('the chrome-devtools-mcp server is not installed beside the launcher and Node has no copy of npx to fetch it');
+  watcher?.kill();
+  process.exit(1);
+}
 const server = entry
   ? spawn(process.execPath, [entry, ...serverArgs], { stdio: 'inherit' })
-  : existsSync(npxCli)
-    ? spawn(process.execPath, [npxCli, '-y', 'chrome-devtools-mcp@latest', ...serverArgs], { stdio: 'inherit' })
-    : spawn('npx', ['-y', 'chrome-devtools-mcp@latest', ...serverArgs], { stdio: 'inherit', shell: process.platform === 'win32' });
+  : spawn(process.execPath, [npxCli, '-y', 'chrome-devtools-mcp@latest', ...serverArgs], { stdio: 'inherit' });
 
 function stop(signal) {
   stopping = true;
