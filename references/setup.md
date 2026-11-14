@@ -2,7 +2,7 @@
 
 ## Windows
 
-Install the launcher once and register it in place of the plain server command. It starts the same server, runs a copy kept on disk so the server starts without the network, and answers Chrome's "Allow remote debugging?" window for that server's connections, so no agent step is needed. The launcher passes any flags on to the server and uses `--autoConnect` when it is given none. It needs Node.js with npm and git.
+Install the launcher once and register it in place of the plain server command. It starts the same server, runs a copy kept on disk so the server starts without the network, and answers Chrome's "Allow remote debugging?" window within about a second whenever a chrome-devtools server asked for it, so no agent step is needed. The launcher passes any flags on to the server and uses `--autoConnect` when it is given none. It needs Node.js with npm and git.
 
 Run these in PowerShell, using the lines for the harness in use. Where a plain registration already exists, remove it first, with `-s <scope>` when it is not at the default scope. A remove that finds nothing is harmless:
 

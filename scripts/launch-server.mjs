@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Starts the chrome-devtools MCP server with its stdio passed straight through. On Windows it first
 // starts the prompt script in watch mode and waits for it to be watching, so Chrome's "Allow remote debugging?" window is answered
-// for this server's connections without the agent doing anything. The watcher never affects the
+// for chrome-devtools connections without the agent doing anything. The watcher never affects the
 // server: if it cannot start or stops, the server still runs and the launcher says so on stderr.
 import { spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
