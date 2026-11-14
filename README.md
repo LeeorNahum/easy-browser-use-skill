@@ -2,8 +2,8 @@
 
 Agent Skill that tells an agent in any harness how to drive the user's real, signed-in Chrome through an existing MCP server, [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp). Its sibling, [easy-computer-use](https://github.com/LeeorNahum/easy-computer-use-skill), covers the Windows desktop.
 
-- `SKILL.md`: what the server reaches, the order of calls, and the traps
-- `references/setup.md`: registering the server and the one Chrome setting
-- `scripts/allow-remote-debugging.ps1` and `references/remote-debugging-prompt.md`: answering Chrome's "Allow remote debugging?" window for the agent's own connection on Windows
-- `scripts/answer-file-dialog.ps1` and `references/file-dialogs.md`: answering the browser's Save As and Open dialogs on Windows
+On Windows it also ships a launcher that starts the server and answers Chrome's "Allow remote debugging?" window for it, a script that does the same for a server registered the plain way, and a script that answers the browser's Save As and Open dialogs.
+
+- `SKILL.md` and `references/`: what the server reaches, the order of calls, the traps, and setup
+- `scripts/` and `package.json`: the launcher and the two scripts
 - `AGENTS.md`: rules for editing this skill
