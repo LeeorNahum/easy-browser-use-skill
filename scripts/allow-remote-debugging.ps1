@@ -35,7 +35,7 @@ these codes.
 6  NO_PORT    no port file, or no Chrome listening on its port, found before WAITING, so nothing was
               watched or touched
 When a window was worked on and no launcher is running, the line also says to register the launcher.
-The skill's remote debugging prompt reference gives the next step for each code.
+The skill's hanging first call reference gives the next step for each code.
 
 .PARAMETER Existing
 Answer the windows already open, such as one a call that hung is waiting on, looking at every open

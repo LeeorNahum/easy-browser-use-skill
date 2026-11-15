@@ -56,7 +56,7 @@ function watcherRunning() {
 function ensureWatcher(waitForReady) {
   return new Promise(done => {
     if (!stateDir || !shell || !existsSync(script)) {
-      if (waitForReady) warn('the Allow window will not be answered automatically, because PowerShell or the script was not found');
+      if (waitForReady) warn('the watcher will not start, because PowerShell or the script was not found');
       return done(false);
     }
     if (watcherRunning()) return done(true);
@@ -69,7 +69,7 @@ function ensureWatcher(waitForReady) {
         { detached: true, stdio: ['ignore', waitForReady ? 'pipe' : 'ignore', 'ignore'], windowsHide: true });
       watcher.unref();
     } catch (error) {
-      if (waitForReady) warn(`the Allow window will not be answered automatically: ${error.message}`);
+      if (waitForReady) warn(`the watcher will not start: ${error.message}`);
       return done(false);
     }
     if (!waitForReady) {
@@ -79,10 +79,10 @@ function ensureWatcher(waitForReady) {
     let settled = false;
     const finish = ok => { if (settled) return; settled = true; clearTimeout(timer); watcher.stdout?.destroy(); done(ok); };
     watcher.stdout.on('data', chunk => { if (String(chunk).includes('READY')) finish(true); });
-    watcher.on('error', error => { warn(`the Allow window will not be answered automatically: ${error.message}`); finish(false); });
-    watcher.on('exit', () => { if (!settled) warn('the Allow window will not be answered automatically, because the watcher stopped while starting'); finish(false); });
+    watcher.on('error', error => { warn(`the watcher will not start: ${error.message}`); finish(false); });
+    watcher.on('exit', () => { if (!settled) warn('the watcher stopped while starting, so the server starts without it'); finish(false); });
     const timer = setTimeout(() => {
-      warn('the Allow window watcher did not start in time, so the server starts without it');
+      warn('the watcher did not start in time, so the server starts without it');
       watcher.kill();
       finish(false);
     }, 15000);
