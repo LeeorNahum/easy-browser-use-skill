@@ -20,7 +20,7 @@ codex mcp add chrome-devtools -- node "$dir\node_modules\easy-browser-use\script
 
 `claude mcp list` shows the result. A session that is already running keeps the server it started, so the change takes effect in the next one, after Chrome has the setting below. Any other harness takes the same stdio command. Flags for the server go after the script path in the add command.
 
-`npm update --prefix $dir` reinstalls the launcher from the repository's default branch and the server within the range `package.json` allows.
+The launcher keeps itself current. Once a day it checks the repository's default branch, and installs a newer release, or a newer server within the range `package.json` allows, into a folder of its own under `$dir\versions`. Each session starts the newest copy on disk, and one already running keeps the copy it started with. A check that fails changes nothing, and the next session's line in the harness's log for the server says why.
 
 The launcher is written for the stable channel's Chrome on an English Windows. For another language or channel, register the plain server as under Elsewhere, with `--channel=<channel>` after `--autoConnect` for another channel.
 
