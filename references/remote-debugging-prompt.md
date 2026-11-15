@@ -10,11 +10,11 @@ Allow gives the program on the other end every tab, cookie, and signed-in accoun
 
 ## With The Launcher
 
-A server registered through the launcher in Setup needs none of what follows. The launcher starts the script in watch mode beside the server and starts the server once the script is watching, or without the script after fifteen seconds, with a warning on stderr. The script answers each new window for as long as the server runs, looking at the connections made in the ten seconds before it appeared, usually within a second. Every session's watcher sees every window, and one at a time works on them.
+A server registered through the launcher in Setup needs none of what follows. One watcher, the script in watch mode, serves every session on the machine. The first launcher starts it and starts its server once it is watching, or without it after fifteen seconds, with a warning on stderr. Later launchers find it running. It answers each new window, looking at the connections made in the ten seconds before it appeared, usually within a second, and exits a few seconds after the last launcher does.
 
-It writes a line per window to `allow.log` in `%LOCALAPPDATA%\easy-browser-use`, and lines for its start, its end, and any error of its own. A window's line has a timestamp and the launcher's process number, then the result word from the table below with its reason.
+It writes a line per window to `allow.log` in `%LOCALAPPDATA%\easy-browser-use`, and lines for its start, its end, and any error of its own. A window's line has a timestamp and the watcher's process number, then the result word from the table below with its reason. `watcher.pid` in the same folder names the latest watcher.
 
-When a call hangs under the launcher, read that log. No log, or no "watching" line in it, means the watcher never started, and the launcher's stderr says why. A window that was open before the watcher began is left alone. A refusal line means the window was left open, and the table's Next column, written for the plain script, applies to it. A window the log shows nothing for was raised before the watcher was watching or by another Chrome, so run the plain script with `-Existing`. The rest of this file is for a server registered the plain way.
+When a call hangs under the launcher, read that log. No log, or no "watching" line in it, means the watcher never started, and the launcher's stderr says why. A refusal line means the window was left open, and the table's Next column, written for the plain script, applies to it. A window the log shows nothing for was raised while no watcher ran or by another Chrome, so run the plain script with `-Existing`. The rest of this file is for a server registered the plain way.
 
 ## Running It
 
@@ -38,7 +38,7 @@ On a machine with only Windows PowerShell 5.1, write `powershell` in place of `p
 
 ## Results
 
-The plain script prints one result line, starting with the word below, and exits with its number. `NO_PORT` comes before `WAITING`, and `ERROR` can come at any point. Every refusal leaves the window open.
+The plain script prints one result line, starting with the word below, and exits with its number. `NO_PORT` comes before `WAITING`, and `ERROR` can come at any point. Every refusal leaves the window open. When the script worked on a window and no launcher is running, the line ends by saying to register the launcher, which stops the window from waiting again at the next connection.
 
 | Exit | Word | Meaning | Next |
 | --- | --- | --- | --- |

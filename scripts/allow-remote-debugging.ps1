@@ -12,17 +12,20 @@ The window does not say which program asked. The script presses Allow when a chr
 server, any agent's, holds a connection to Chrome's debugging port that could have raised the
 window, and no program of another kind does. Otherwise it leaves the window open.
 
-With -Watch it keeps running for the launcher that starts the server, and answers each new window
-as it appears, looking at the connections made in the ten seconds before. It prints READY once it
-is watching and nothing after that. It writes a line per window to -LogFile, starting with a
-timestamp and -ParentPid and then one of the words below, and also logs when it starts, when it
-ends, and any error of its own. It exits with 0 when -ParentPid exits, and with 1 after an error
-that ends the watch.
+With -Watch it answers each new window as it appears, looking at the connections made in the ten
+seconds before, for every session on the machine. One watcher runs at a time: a second one waits
+until the first is watching and then exits. It prints READY once a watcher is watching and nothing
+after that. It writes its process id to -PidFile and holds that file open while it runs, which is how
+a launcher tells it is running. It answers a window already open when it starts like a new one. It
+writes a line per window to -LogFile,
+starting with a timestamp and its process id and then one of the words below, and also logs when it
+starts, when it ends, and any error of its own. It exits with 0 a few seconds after no launcher is
+running, and with 1 after an error that ends the watch.
 
 Without -Watch it prints WAITING once it is watching, answers the windows that appear after it
 started, looking at the connections made since then, prints one result line, and exits with one of
-these codes:
-0  DONE       Allow was pressed and every window closed
+these codes.
+0  DONE      Allow was pressed and every window closed
 1  ERROR      the script itself failed
 2  NO_DIALOG  no matching window appeared within -TimeoutSec
 3  NO_BUTTON  a window does not have the buttons this script knows, and is left open
@@ -31,6 +34,7 @@ these codes:
 5  OPEN       a window did not close after Allow
 6  NO_PORT    no port file, or no Chrome listening on its port, found before WAITING, so nothing was
               watched or touched
+When a window was worked on and no launcher is running, the line also says to register the launcher.
 The skill's remote debugging prompt reference gives the next step for each code.
 
 .PARAMETER Existing
@@ -38,10 +42,10 @@ Answer the windows already open, such as one a call that hung is waiting on, loo
 connection.
 
 .PARAMETER Watch
-Keep answering windows until -ParentPid exits. Needs -ParentPid and cannot be combined with -Existing.
+Keep answering windows while any launcher runs. Cannot be combined with -Existing.
 
-.PARAMETER ParentPid
-With -Watch, the launcher. The watch ends when it does.
+.PARAMETER PidFile
+With -Watch, the file that holds the watcher's process id while it runs.
 
 .PARAMETER LogFile
 With -Watch, the file that gets a line per window and what was done about it.
@@ -65,7 +69,7 @@ How long to wait for a window to appear. Defaults to 30.
 param(
   [switch]$Existing,
   [switch]$Watch,
-  [int]$ParentPid = 0,
+  [string]$PidFile = '',
   [string]$LogFile = '',
   [string]$Title = 'Allow remote debugging?',
   [string]$AllowName = 'Allow',
@@ -76,7 +80,7 @@ param(
 $ErrorActionPreference = 'Stop'
 function Done([int]$Code, [string]$Line) { Write-Output ($Line -replace '\s+', ' '); exit $Code }
 try {
-if ($Watch -and ($Existing -or $ParentPid -lt 1)) { Done 1 'ERROR: -Watch needs -ParentPid and cannot be combined with -Existing.' }
+if ($Watch -and $Existing) { Done 1 'ERROR: -Watch cannot be combined with -Existing.' }
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 Add-Type @"
 using System; using System.Collections.Generic; using System.Net; using System.Text; using System.Runtime.InteropServices;
@@ -191,7 +195,17 @@ $W = [RemoteDebugWin32]
 $started = Get-Date
 
 function Write-Log([string]$Line) {
-  if ($LogFile) { try { Add-Content -LiteralPath $LogFile -Value ("{0} [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'), $ParentPid, $Line) } catch { } }
+  if ($LogFile) { try { Add-Content -LiteralPath $LogFile -Value ("{0} [{1}] {2}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss.fff'), $PID, $Line) } catch { } }
+}
+
+# Whether any session's launcher is running: Node with the launcher's script on its command line,
+# leaving out the launcher's helper that keeps the watcher running
+function Test-Launcher {
+  foreach ($p in @(Get-Process -Name node -ErrorAction SilentlyContinue)) {
+    $line = "$($W::CommandLine($p.Id))"
+    if ($line -match '[\\/]scripts[\\/]launch-server\.mjs' -and $line -notmatch '--watcher-helper') { return $true }
+  }
+  $false
 }
 
 # Every visible window titled $Title, as objects with Handle and Pid
@@ -273,26 +287,43 @@ function Invoke-Allow([long]$Prompt, [datetime]$SeenAt, [scriptblock]$Check) {
 }
 
 if ($Watch) {
-  # Windows open now belong to connections made before this watch, so they are left alone
+  # One watcher serves every session. A second one waits for the first to be watching, so its
+  # launcher starts the server only once a window can be answered, and then leaves.
+  $only = [System.Threading.Mutex]::new($false, 'Local\easy-browser-use-watcher')
+  $ready = [System.Threading.EventWaitHandle]::new($false, [System.Threading.EventResetMode]::ManualReset, 'Local\easy-browser-use-watcher-ready')
+  try { $owner = $only.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $owner = $true }
+  if (-not $owner) {
+    if (-not $ready.WaitOne(10000)) { exit 1 }
+    Write-Output 'READY'
+    exit 0
+  }
+  [void]$ready.Reset()
+  # Held open for writing until the watcher exits, which is how a launcher tells it is running
+  if ($PidFile) {
+    $pidHandle = [System.IO.File]::Open($PidFile, 'OpenOrCreate', 'Write', 'Read')
+    $pidHandle.SetLength(0)
+    $bytes = [System.Text.Encoding]::ASCII.GetBytes("$PID")
+    $pidHandle.Write($bytes, 0, $bytes.Length)
+    $pidHandle.Flush()
+  }
+  # A window already open is answered like a new one, so one raised while a watcher was being replaced is not missed
   $handled = @{}
-  foreach ($openAtStart in @(Find-Titled)) { $handled[$openAtStart.Handle] = $true }
-  $parent = [System.Diagnostics.Process]::GetProcessById($ParentPid)
-  Write-Log "watching for windows titled '$Title' while process $ParentPid runs"
-  # The launcher starts the server once this is printed, so no window comes before the snapshot above
+  Write-Log "watching for windows titled '$Title' while a launcher runs"
+  [void]$ready.Set()
   Write-Output 'READY'
-  # Every session's watcher sees every window, so one at a time works on them and the others find them answered
-  $lock = [System.Threading.Mutex]::new($false, 'Local\easy-browser-use-allow')
-  while (-not $parent.HasExited) {
-    $locked = $false
+  $nextLauncherCheck = Get-Date
+  $watching = $true
+  while ($watching) {
     try {
+      if ((Get-Date) -ge $nextLauncherCheck) {
+        $watching = Test-Launcher
+        $nextLauncherCheck = (Get-Date).AddSeconds(4)
+      }
       $open = @(Find-Titled)
       # A closed window's handle can be reused, so forget the ones that are gone
       foreach ($h in @($handled.Keys)) { if (-not ($open | Where-Object { $_.Handle -eq $h })) { $handled.Remove($h) } }
       $fresh = @($open | Where-Object { -not $handled.ContainsKey($_.Handle) })
-      if ($fresh.Count) {
-        try { $locked = $lock.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $locked = $true }
-      }
-      if ($locked) {
+      if ($watching -and $fresh.Count) {
         $seenAt = Get-Date
         $browser = Get-Browser
         if ($browser.Error) {
@@ -312,10 +343,9 @@ if ($Watch) {
         }
       }
     } catch { Write-Log "ERROR: $($_.Exception.Message)" }
-    finally { if ($locked) { $lock.ReleaseMutex() } }
-    Start-Sleep -Milliseconds 250
+    if ($watching) { Start-Sleep -Milliseconds 250 }
   }
-  Write-Log "process $ParentPid is gone, so the watch ends"
+  Write-Log 'no launcher is running, so the watch ends'
   exit 0
 }
 
@@ -350,7 +380,9 @@ foreach ($hit in $hits) {
   if ($result -and (-not $worst -or $result.Code -gt $worst.Code)) { $worst = $result }
 }
 if (-not $worst) { Done 2 'NO_DIALOG: the window closed before it could be answered' }
-Done $worst.Code $worst.Line
+# Without a launcher, this server will wait on the window again at its next connection
+$hint = if (Test-Launcher) { '' } else { ' No launcher is running, so register the launcher as the skill''s Setup says.' }
+Done $worst.Code "$($worst.Line)$hint"
 } catch {
   if ($Watch) { Write-Log "ERROR: $($_.Exception.Message) The watch ends."; exit 1 }
   Done 1 "ERROR: $($_.Exception.Message)"
