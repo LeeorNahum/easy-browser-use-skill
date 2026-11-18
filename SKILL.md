@@ -4,7 +4,7 @@ description: "Use whenever a task needs a web browser, from any harness: opening
 compatibility: "Needs the chrome-devtools MCP server registered in the harness, a current Node.js LTS with npx, and Chrome 144 or later. The launcher and scripts need Windows with PowerShell 7 or Windows PowerShell 5.1, and git and network access when the launcher is installed or a script is fetched rather than run from the skill's folder."
 metadata:
   author: "Leeor Nahum"
-  version: "1.6.0"
+  version: "2.0.0"
 ---
 
 # Easy Browser Use
