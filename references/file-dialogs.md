@@ -4,7 +4,7 @@ The [file dialog script](../scripts/answer-file-dialog.ps1) waits for a browser'
 
 ## Running It
 
-Start the script as a background command, or as a separate process whose output can be read while it runs, and click only after it prints `WAITING`. If it ends before printing `WAITING`, read its result and do not click. The click can still be waiting while the dialog stays open, so run any rerun as its own command. By default it ignores a matching dialog that was already open when it started, and waits up to 15 seconds for a new one. Raise `-TimeoutSec` for a slow page. For a dialog that is already waiting, run it with `-Existing`, and no click is needed.
+Start the script as a background command, or as a separate process whose output can be read while it runs, and click only after it prints `WAITING`, every time. A dialog that opens before the script is waiting stays on screen, and the call that opened it stays held, until a run with `-Existing` answers it. If it ends before printing `WAITING`, read its result and do not click. The click can still be waiting while the dialog stays open, so run any rerun as its own command. By default it ignores a matching dialog that was already open when it started, and waits up to 15 seconds for a new one. Raise `-TimeoutSec` for a slow page. For a dialog that is already waiting, run it with `-Existing`, and no click is needed.
 
 Where the skill's files are not on disk, fetch the script and run it in one line. Where they are, run it from the skill's folder. Both lines are PowerShell. On a machine with only Windows PowerShell 5.1, write `powershell` in place of `pwsh`:
 

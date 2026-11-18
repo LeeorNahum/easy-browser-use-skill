@@ -30,7 +30,9 @@ these codes.
 2  NO_DIALOG  no matching window appeared within -TimeoutSec
 3  NO_BUTTON  a window does not have the buttons this script knows, and is left open
 4  REFUSED    no chrome-devtools-mcp server holds such a connection, or a program of another kind
-              does, so the window is left open
+              does, so the window is left open. The line names each program of another kind by
+              its name, process id, and command line, or its path when the command line cannot
+              be read
 5  OPEN       a window did not close after Allow
 6  NO_PORT    no port file, or no Chrome listening on its port, found before WAITING, so nothing was
               watched or touched
@@ -241,15 +243,35 @@ function Test-Server([int]$ProcessId) {
   "$line" -match '[\\/]chrome-devtools-mcp[\\/].*[\\/]chrome-devtools-mcp\.js'
 }
 
+# A program by its name, process id, and command line, or its executable's path when the command line
+# cannot be read, since a name such as node alone does not say which program it is
+function Get-Program([int]$ProcessId) {
+  $p = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+  if (-not $p) { return "process $ProcessId, which has since exited" }
+  $line = $W::CommandLine($ProcessId)
+  if (-not $line) { $line = (Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue).CommandLine }
+  if (-not $line) { $line = $p.Path }
+  if (-not $line) { $line = 'whose command line and path cannot be read' }
+  "$($p.ProcessName) (process $ProcessId, $(($line -replace '\s+', ' ').Trim()))"
+}
+
 # Why a window must be left open, or nothing when Allow can be pressed. Any open connection from a
-# program of another kind refuses it, whatever its age. A server connection counts only when it was
-# made since $Since, because Chrome raises the window as the connection is made.
+# program of another kind refuses it, whatever its age, and the reason names each such program. A
+# server connection counts only when it was made since $Since, because Chrome raises the window as
+# the connection is made.
 function Test-Connections($Browser, [datetime]$Since) {
   $servers = 0
+  $others = [System.Collections.Generic.List[int]]::new()
   foreach ($c in @(Get-Connections | Where-Object { $_.State -eq 5 -and $_.RemotePort -eq $Browser.Port })) {
     if ($c.Pid -eq $Browser.Pid -or $Browser.Addresses -notcontains $c.RemoteAddress) { continue }
-    if (-not (Test-Server $c.Pid)) { return 'a program other than chrome-devtools-mcp is connected to Chrome''s debugging port' }
+    if (-not (Test-Server $c.Pid)) { if (-not $others.Contains($c.Pid)) { $others.Add($c.Pid) }; continue }
     if ($c.Created -ge $Since) { $servers++ }
+  }
+  if ($others.Count) {
+    $names = @($others | ForEach-Object { Get-Program $_ })
+    $names = if ($names.Count -le 2) { $names -join ' and ' } else { ($names[0..($names.Count - 2)] -join ', ') + ', and ' + $names[-1] }
+    $which = if ($others.Count -eq 1) { 'a program other than chrome-devtools-mcp is' } else { 'programs other than chrome-devtools-mcp are' }
+    return "$which connected to Chrome's debugging port: $names"
   }
   if (-not $servers) { return 'no chrome-devtools-mcp server has a connection to Chrome''s debugging port that could have raised the window' }
 }

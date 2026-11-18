@@ -20,9 +20,18 @@ codex mcp add chrome-devtools -- node "$dir\node_modules\easy-browser-use\script
 
 `claude mcp list` shows the result. A session that is already running keeps the server it started, so the change takes effect in the next one, after Chrome has the setting below. Any other harness takes the same stdio command. Flags for the server go after the script path in the add command.
 
+The launcher also starts the server with these defaults, ahead of any flags in the add command, so a flag there overrides a default. Once the add command has a flag of its own, the launcher no longer adds `--autoConnect`, so include `--autoConnect` there too:
+
+- `--no-usage-statistics` and `--no-performance-crux`: the server sends Google no usage statistics and no URLs from performance traces. `--usage-statistics` or `--performance-crux` turns one back on.
+- `--maxNavigationSaved=1`: each page keeps the network requests and console messages of its current navigation only, not of the ones before it. A `--maxNavigationSaved` of your own replaces it, and `3` is the server's own default.
+- `--workspace` with the root of each local fixed drive, such as `C:\`: the tools that read or write a file, such as the upload tool and a screenshot or snapshot saved to a path, reach any folder on those drives, not only the session's folders and the temp folder, so an agent can attach any file there to a page. Network and removable drives are left out. Folders passed with `--workspace` are added to the drive roots, and turning unrestricted paths on, with `--allow-unrestricted-paths` or in the server's config file, leaves the roots out. Folders listed as `filesystemRoot` in the server's config file take the place of the drive roots, and the harness's own folders and the temp folder stay reachable beside them.
+- The server does not check for a newer release of itself, since the launcher keeps it current.
+
+The server's config file is the one `--config` names, or else the first the server finds of `cd4a.config.json` in the folder the `PLUGIN_DATA` variable names and `%LOCALAPPDATA%\Google\cd4a\config.json`. A setting made there keeps its value, and the launcher leaves out its default for that setting. The launcher reads the file as the session starts, so a setting added while the session runs takes effect in the next one.
+
 The launcher keeps itself current. Once a day it checks the repository's default branch, and installs a newer release, or a newer server within the range `package.json` allows, into a folder of its own under `$dir\versions`. Each session starts the newest copy on disk, and one already running keeps the copy it started with. A check that fails changes nothing, and the next session's line in the harness's log for the server says why.
 
-The launcher is written for the stable channel's Chrome on an English Windows. For another language or channel, register the plain server as under Elsewhere, with `--channel=<channel>` after `--autoConnect` for another channel.
+The launcher is written for the stable channel's Chrome on an English Windows. For another language or channel, register the plain server as under Elsewhere, with `--channel=<channel>` after `--autoConnect` for another channel. The plain server has none of the launcher's defaults, so add the flags above after `--autoConnect` to keep them.
 
 ## Elsewhere
 

@@ -8,7 +8,7 @@ A first call that hangs is usually waiting on Chrome's "Allow remote debugging?"
 
 One watcher, shared by every session on the machine, answers each window. It writes a line per window to `allow.log` in `%LOCALAPPDATA%\easy-browser-use`, and lines for its start, its end, and any error of its own. A window's line has a timestamp and the watcher's process number, then the result word from the table below with its reason.
 
-Read that log. No log, or no "watching" line in it, usually means the watcher never started, and the launcher's stderr says why. A refusal line means the window was left open, and the table's Next column applies to it. A window the log shows nothing for was raised while no watcher ran, by another channel's Chrome, or in another language, so run the script with `-Existing` and the parameters that match it, as below.
+Read that log. No log, or no "watching" line in it, usually means the watcher never started, and the launcher's stderr says why. A refusal line means the window was left open, and the table's Next column applies to it. A refusal because a program of another kind is connected names each such program by its name, process id, and command line, or its path, so tell the user which program it is. The window is left open because that program could have raised it, so whether it may connect is the user's decision. Once that program is closed, a run of the script with `-Existing` answers the window. A window the log shows nothing for was raised while no watcher ran, by another channel's Chrome, or in another language, so run the script with `-Existing` and the parameters that match it, as below.
 
 ## Running The Script
 
@@ -42,7 +42,7 @@ The script prints one result line, starting with the word below, and exits with 
 | 1 | `ERROR` | The script itself failed | Read the message, and check whether the window is still open |
 | 2 | `NO_DIALOG` | No matching window appeared in time, or it closed before it was answered | Make a call to see whether the connection is already open. If a call hangs and the window is open now, run again with `-Existing`. Otherwise check the title and that the call was made after `WAITING` |
 | 3 | `NO_BUTTON` | A window does not show exactly the three buttons this script knows | Chrome may have changed the window. Answer it through desktop control and report it |
-| 4 | `REFUSED` | A program other than chrome-devtools-mcp is connected, or no chrome-devtools-mcp server is | Leave the window and report it, naming the program when the log or the connection list shows it. When no server is connected, check that the call was made after `WAITING` |
+| 4 | `REFUSED` | A program other than chrome-devtools-mcp is connected, or no chrome-devtools-mcp server is. A program of another kind is named by its name, process id, and command line or path | Leave the window, and tell the user about each program the line names. Once the user closes it, run again with `-Existing`. When no server is connected, check that the call was made after `WAITING` |
 | 5 | `OPEN` | A window did not close after Allow | Run again with `-Existing`. If it ends in `OPEN` again, answer it through desktop control and report it |
 | 6 | `NO_PORT` | No port file, or no Chrome listening on its port, so nothing was watched or touched | Start Chrome, turn remote debugging on at `chrome://inspect/#remote-debugging` through desktop control, or pass the folder of the Chrome that is running as `-UserDataDir`, then start over |
 
